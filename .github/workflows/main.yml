@@ -1,15 +1,15 @@
-name: Build PentoMaster
+name: Build Windows EXE
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest
 
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up JDK 17
@@ -18,14 +18,29 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Build JAR
+    - name: Compile Java
       run: |
-        mkdir -p dist
-        javac -d out $(find . -name "*.java")
-        jar cfe dist/PentoMaster_latest.jar com.example.PentoMaster_v1.Main -C out .
+        mkdir out
+        javac -d out $(Get-ChildItem -Recurse -Filter *.java | Select-Object -ExpandProperty FullName)
 
-    - name: Upload build
+    - name: Create JAR
+      run: |
+        mkdir dist
+        jar cfe dist/PentoMaster.jar com.example.PentoMaster_v1.Main -C out .
+
+    - name: Build EXE with jpackage
+      run: |
+        jpackage ^
+          --type exe ^
+          --input dist ^
+          --main-jar PentoMaster.jar ^
+          --main-class com.example.PentoMaster_v1.Main ^
+          --name PentoMaster ^
+          --dest dist ^
+          --win-console
+
+    - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
-        name: PentoMaster-build
-        path: dist/PentoMaster_latest.jar
+        name: PentoMaster-Windows-EXE
+        path: dist
