@@ -3,6 +3,7 @@ name: Build Windows EXE
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -12,35 +13,46 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up JDK 17
+    - name: Set up Java 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Verify project structure
+      run: |
+        echo "Listing files:"
+        dir
+        echo "Listing src:"
+        dir src
+
     - name: Compile Java
       run: |
         mkdir out
-        javac -d out $(Get-ChildItem -Recurse -Filter *.java | Select-Object -ExpandProperty FullName)
+        javac -encoding UTF-8 -d out src/**/*.java
 
     - name: Create JAR
       run: |
         mkdir dist
         jar cfe dist/PentoMaster.jar com.example.PentoMaster_v1.Main -C out .
 
+    - name: Install jpackage
+      run: |
+        java --version
+
     - name: Build EXE with jpackage
       run: |
         jpackage ^
           --type exe ^
           --input dist ^
+          --name PentoMaster ^
           --main-jar PentoMaster.jar ^
           --main-class com.example.PentoMaster_v1.Main ^
-          --name PentoMaster ^
-          --dest dist ^
+          --java-options "--enable-preview" ^
           --win-console
 
-    - name: Upload EXE
+    - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
         name: PentoMaster-Windows-EXE
-        path: dist
+        path: PentoMaster*.exe
